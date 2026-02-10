@@ -9,12 +9,11 @@ import streamlit as st
 from simplyprint import SimplyPrintFilament, SimplyPrintMaterial, SimplyPrintClient, SimplyPrintError
 
 class Page:
-    def __init__(self, api_base_url: str, api_token: str, api_company_id: str, refresh_seconds: int, is_development_mode: bool):
+    def __init__(self, api_base_url: str, api_token: str, api_company_id: str, refresh_seconds: int):
         self.api_base_url: str = api_base_url
         self.api_token: str = api_token
         self.api_company_id: str = api_company_id
         self.refresh_seconds: int = refresh_seconds
-        self.is_development_mode: bool = is_development_mode
 
     COLS_PER_ROW: int = 3
     SELECTED_BRANDS_KEY: str = "selected_brands"
@@ -165,11 +164,6 @@ class Page:
         @st.cache_data(ttl=self.refresh_seconds)
         def refresh_data() -> tuple[Dict[int, SimplyPrintMaterial], Dict[int, SimplyPrintFilament]]:
             return client.get_materials(), client.get_filaments()
-
-        if self.is_development_mode:
-            st.info("Development mode")
-            if st.button("Refresh"):
-                st.cache_data.clear()
 
         try:
             materials, filaments = refresh_data()
