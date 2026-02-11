@@ -97,19 +97,20 @@ class Page:
             cols = st.columns(self.COLS_PER_ROW)
             for col, filament in zip(cols, filament_list[i : i + self.COLS_PER_ROW]):
                 with col:
+                    material = materials.get(filament.material_id)
+                    if material is None:
+                        st.warning(f"Material {filament.material_id} not found.")
+                        continue
                     with st.container(border=True):
                         col1, col2 = st.columns([2, 1])
                         with col1:
-                            st.subheader(filament.color_name)
-                            st.write(f"*{filament.brand}*")
+                            st.subheader(f"{filament.color_name} - {material.material_type}")
+                            st.write(f"*{filament.brand} - {material.filament_type_name}*")
                         with col2:
                             svg = self._create_spool_svg(filament.color_hex, filament.length_left / filament.length_total)
                             st.write(f"""<div style="display:flex; justify-content:center;">{svg}</div>""", unsafe_allow_html=True)
                         st.space("xxsmall")
-                        material = materials.get(filament.material_id)
-                        grams_left = None
-                        if material is not None and material.density is not None:
-                            grams_left = self._filament_grams_left(filament.length_left, filament.diameter, material.density)
+                        grams_left = self._filament_grams_left(filament.length_left, filament.diameter, material.density)
                         fill = filament.length_left / filament.length_total
                         st.progress(fill)
                         if grams_left is not None:
@@ -162,12 +163,12 @@ class Page:
                                    api_company_id=self.api_company_id)
 
         @st.cache_data(ttl=self.refresh_seconds)
-        def refresh_data() -> tuple[Dict[int, SimplyPrintMaterial], Dict[int, SimplyPrintFilament]]:
-            return client.get_materials(), client.get_filaments()
+        def refresh_data() -> tuple[Dict[int, SimplyPrintMaterial], Dict[int, SimplyPrintFilament], datetime]:
+            return client.get_materials(), client.get_filaments(), datetime.now(timezone.utc)
 
         try:
-            materials, filaments = refresh_data()
-            last_fetch = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+            materials, filaments, now = refresh_data()
+            last_fetch = now.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
             st.caption(f"Last fetch: {last_fetch} | Materials: {len(materials)} | Spools: {len(filaments)}")
             filtered_materials, filters_active = self._render_materials(materials)
             if filters_active:
